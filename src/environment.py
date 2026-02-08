@@ -28,6 +28,8 @@ class Environment:
         obstacles: list[Bounds],
         landmarks: list[Landmark],
         robot_starting_pose: Pose,
+        lm_range: float = 10.0,
+
     ):
         """
         Initialize an instance of the Environment class.
@@ -40,21 +42,27 @@ class Environment:
             robot_starting_pose: the initial position and heading of the robot
         """
         # TODO: set the dimensions property to the parameter value
-        self.DIMENSIONS = None
+        self.DIMENSIONS = dimensions
 
         # TODO: set the timestep size property to the parameter value
-        self.DT = None
+        self.DT = dt
 
         # TODO: set the current time to zero
-        self.time = None
+        self.time = 0
 
         # TODO: set the obstacles and landmarks properties to the parameter lists
-        self.OBSTACLES = None
-        self.LANDMARKS = None
+        self.OBSTACLES = obstacles
+        self.LANDMARKS = landmarks
 
         # TODO: set the robot pose property to the parameter value
-        self.robot_pose = None
-
+        assert dimensions.within_bounds(robot_starting_pose.pos)
+        self.robot_pose = robot_starting_pose
+        
+        for o in obstacles:
+            assert dimensions.within_x(o.x_min)
+            assert dimensions.within_x(o.x_max)
+            assert dimensions.within_y(o.y_min)
+            assert dimensions.within_y(o.y_max)
     def robot_step(self, dx: float, dy: float, dtheta: float):
         """
         Update the robot's position and heading in the world. The robot should not be able to pass through obstacles or outside of the world bounds.
@@ -68,7 +76,13 @@ class Environment:
             Nothing, but update the robot_pose property at the end
         """
         # TODO: fill in the function
-        pass
+    
+        updated_pos = self.is_valid_position(dx, dy)
+        updated_theta = self.robot_pose.theta + dtheta
+        # math for updated theta turning it into radians?? want to look into this more
+        self.time = round(self.time + self.DT, 3)
+        self.robot_pose = Pose(updated_pos, updated_theta)
+        
 
     def is_valid_motion(self, dx: float, dy: float):
         """
@@ -83,8 +97,19 @@ class Environment:
             dy: change in y position that should be executed
         """
         # TODO: fill in the function
-        pass
+        x_new = self.robot_pose.x
+        if self.is_valid_position(
+            Position(self.robot_pose.pos.x + dx, self.robot_pose.pos.y)
+        ):
+            x_new = self.robot_pose.pos.x + dx
+        
+        y_new = self.robot_pose.y
+        if self.is_valid_position(
+            Position(x_new, self.robot_pose.pos.y + dy)
+        ):
+            y_new = self.robot_pose.pos.y + dy
 
+        return Position(x_new, y_new)
     def is_valid_position(self, position: Position):
         """
         Check if a given robot position is valid; i.e. not out-of-bounds or within an obstacle. Return a boolean representing whether or not this condition is true.
@@ -96,21 +121,29 @@ class Environment:
             true if the position is valid and false otherwise
         """
         # TODO: fill in the function
-        pass
+        if self.DIMENSIONS.within_bounds(position):
+            result = True
+            for o in self.OBSTACLES:
+                result = result and not o.within_bounds(position)
+            return result
+        return False
 
     def get_robot_pose(self):
         """
         Return the true robot pose.
         """
         # TODO: fill in the function
-        pass
+        return self.robot_pose
 
     def get_proximity_to_landmarks(self):
         """
         Return a list of the robot's true range and bearing to all landmarks.
         """
         # TODO: fill in the function
-        pass
+        for l in self.LANDMARKS:
+            x_diff = l.pos.x - self.agent_pose.pos.x
+            y_diff = l.pos.y = self.agent_pose.pos.y
+            #some math i want to understand why we are using here
 
     def take_state_snapshot(self):
         """
